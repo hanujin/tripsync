@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripSync - Personality Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>✈️ TripSync</h1>
+            <nav class="nav-menu">
+                <a href="home.html" class="nav-btn">Plan Trip</a>
+                <a href="personality.html" class="nav-btn active">Personality Test</a>
+                <a href="mypage.html" class="nav-btn">My Trips</a>
+            </nav>
+            <div class="user-info">
+                <span class="user-name" id="userName"></span>
+                <button class="btn-logout" id="logoutBtn">Logout</button>
+            </div>
+        </header>
+
+        <div class="personality-container">
+            <div id="testStartScreen" class="test-screen">
+                <div class="test-intro">
+                    <h2>🌍 Discover Your Travel Personality</h2>
+                    <p class="intro-text">Take this quick 12-question test to find out your unique travel style and get personalized destination recommendations!</p>
+                    <div class="test-features">
+                        <div class="feature-item">
+                            <span class="feature-icon">✨</span>
+                            <span>Personalized recommendations</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">🎯</span>
+                            <span>Discover your travel style</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">🗺️</span>
+                            <span>Get destination matches</span>
+                        </div>
+                    </div>
+                    <button class="btn-start-test" id="startTestBtn">Start Test</button>
+                </div>
+            </div>
+
+            <div id="testQuestionsScreen" class="test-screen" style="display: none;">
+                <div class="test-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">Question 1 of 12</span>
+                </div>
+                
+                <div class="question-container" id="questionContainer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/personality.js"></script>
+</body>
+</html>

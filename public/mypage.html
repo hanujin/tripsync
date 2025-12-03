@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripSync - My Trips</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>✈️ TripSync</h1>
+            <nav class="nav-menu">
+                <a href="home.html" class="nav-btn">Plan Trip</a>
+                <a href="personality.html" class="nav-btn">Personality Test</a>
+                <a href="mypage.html" class="nav-btn active">My Trips</a>
+            </nav>
+            <div class="user-info">
+                <span class="user-name" id="userName"></span>
+                <button class="btn-logout" id="logoutBtn">Logout</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="mypage-container">
+                <h2>My Saved Trips</h2>
+                <div id="savedTripsContainer">
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                        </svg>
+                        <p>No saved trips yet. Start planning your first adventure!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/mypage.js"></script>
+</body>
+</html>

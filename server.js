@@ -1,10 +1,9 @@
-// server.js - Backend with MongoDB
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -12,7 +11,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+app.use(express.static('public', {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+        if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tripsync';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
@@ -25,6 +34,14 @@ const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    personality: {
+        destinationType: String,
+        planningType: String,
+        fullType: String,
+        name: String,
+        description: String,
+        destinations: [String]
+    },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -33,6 +50,7 @@ const tripSchema = new mongoose.Schema({
     city: { type: String, required: true },
     days: { type: Number, required: true },
     activities: [String],
+    mustVisit: { type: String, default: '' },
     tripPlan: {
         days: [{
             day: Number,
@@ -133,19 +151,37 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// Generate trip plan (preview only, not saved)
 app.post('/api/generate-trip', authenticateToken, async (req, res) => {
     try {
-        const { city, days, activities } = req.body;
-        console.log(`[Trip] User ${req.user.email} generating ${days}-day trip for ${city}`);
+        const { city, days, activities, mustVisit } = req.body;
+        console.log(`[Trip Preview] User ${req.user.email} generating ${days}-day trip for ${city}`);
         
-        const tripPlan = await generateTripPlan(city, days, activities);
+        const tripPlan = await generateTripPlan(city, days, activities, mustVisit);
         const packingList = await generatePackingList(city, activities, days);
+        
+        res.json({
+            tripPlan,
+            packingList
+        });
+    } catch (error) {
+        console.error('[Trip Preview] Error:', error);
+        res.status(500).json({ error: 'Failed to generate trip' });
+    }
+});
+
+// Save trip to database
+app.post('/api/save-trip', authenticateToken, async (req, res) => {
+    try {
+        const { city, days, activities, mustVisit, tripPlan, packingList } = req.body;
+        console.log(`[Save Trip] User ${req.user.email} saving trip to ${city}`);
         
         const trip = new Trip({
             userId: req.user.userId,
             city,
             days,
             activities,
+            mustVisit: mustVisit || '',
             tripPlan,
             packingList
         });
@@ -154,13 +190,12 @@ app.post('/api/generate-trip', authenticateToken, async (req, res) => {
         console.log('[Trip] Saved to database');
         
         res.json({
-            tripId: trip._id,
-            tripPlan,
-            packingList
+            message: 'Trip saved successfully',
+            tripId: trip._id
         });
     } catch (error) {
-        console.error('[Trip] Error:', error);
-        res.status(500).json({ error: 'Failed to generate trip' });
+        console.error('[Save Trip] Error:', error);
+        res.status(500).json({ error: 'Failed to save trip' });
     }
 });
 
@@ -220,22 +255,52 @@ app.get('/api/maps-key', (req, res) => {
     });
 });
 
-async function generateTripPlan(city, days, activities) {
+// Save user personality
+app.post('/api/personality', authenticateToken, async (req, res) => {
+    try {
+        const personality = req.body;
+        console.log(`[Personality] Saving for user ${req.user.email}`);
+        
+        await User.findByIdAndUpdate(
+            req.user.userId,
+            { personality },
+            { new: true }
+        );
+        
+        res.json({ message: 'Personality saved successfully' });
+    } catch (error) {
+        console.error('[Personality] Error:', error);
+        res.status(500).json({ error: 'Failed to save personality' });
+    }
+});
+
+// Get user personality
+app.get('/api/personality', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select('personality');
+        res.json({ personality: user.personality || null });
+    } catch (error) {
+        console.error('[Get Personality] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch personality' });
+    }
+});
+
+async function generateTripPlan(city, days, activities, mustVisit) {
     const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY;
     
     if (!GOOGLE_AI_KEY) {
-        console.warn('[Trip] Using fallback');
-        return generateFallbackTrip(city, days, activities);
+        console.warn('[Trip] No AI key found, using fallback');
+        return generateFallbackTrip(city, days, activities, mustVisit);
     }
     
     try {
-        const prompt = `Create a detailed ${days}-day trip itinerary for ${city}. 
+        const mustVisitText = mustVisit ? `\n\nIMPORTANT: The traveler must visit these places: ${mustVisit}. Please include these locations in the itinerary.` : '';
+        
+        const prompt = `Create a ${days}-day trip itinerary for ${city}.
 
-Traveler preferences: ${activities.join(', ')}
+Activities: ${activities.join(', ')}${mustVisitText}
 
-Provide day-by-day itinerary with specific locations, times, and descriptions.
-
-Return ONLY valid JSON in this exact format:
+Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks:
 {
     "days": [
         {
@@ -245,7 +310,7 @@ Return ONLY valid JSON in this exact format:
                 {
                     "time": "09:00 AM",
                     "location": "Location name",
-                    "description": "What to do"
+                    "description": "Activity description"
                 }
             ]
         }
@@ -254,31 +319,60 @@ Return ONLY valid JSON in this exact format:
 }`;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_AI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                    generationConfig: { 
+                        temperature: 0.7,
+                        maxOutputTokens: 4096
+                    }
                 })
             }
         );
         
         const data = await response.json();
+        console.log('[AI Trip] API Response received');
         
-        if (data.candidates?.[0]) {
-            const content = data.candidates[0].content.parts[0].text;
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
-            }
+        // Check for errors in response
+        if (data.error) {
+            console.error('[AI Trip] API Error:', data.error);
+            throw new Error(`API Error: ${data.error.message}`);
         }
         
-        throw new Error('Invalid AI response');
+        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            let content = data.candidates[0].content.parts[0].text;
+            console.log('[AI Trip] FULL RESPONSE:\n', content);
+            
+            // Remove markdown code blocks
+            content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').replace(/```/g, '');
+            content = content.trim();
+            
+            // Try to find JSON object
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    const result = JSON.parse(jsonMatch[0]);
+                    console.log('[AI Trip] Successfully parsed trip plan');
+                    return result;
+                } catch (parseError) {
+                    console.error('[AI Trip] JSON parse error:', parseError.message);
+                    console.error('[AI Trip] Attempted to parse:', jsonMatch[0].substring(0, 500));
+                }
+            } else {
+                console.error('[AI Trip] No JSON object found in response');
+            }
+        } else {
+            console.error('[AI Trip] No text content in response');
+            console.log('[AI Trip] Full data:', JSON.stringify(data, null, 2));
+        }
+        
+        throw new Error('Invalid AI response format');
     } catch (error) {
         console.error('[AI Trip] Error:', error.message);
-        return generateFallbackTrip(city, days, activities);
+        return generateFallbackTrip(city, days, activities, mustVisit);
     }
 }
 
@@ -286,7 +380,7 @@ async function generatePackingList(city, activities, days) {
     const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY;
     
     if (!GOOGLE_AI_KEY) {
-        console.warn('[Packing] Using fallback');
+        console.warn('[Packing] No AI key found, using fallback');
         return generateFallbackPacking(activities, days);
     }
     
@@ -295,67 +389,129 @@ async function generatePackingList(city, activities, days) {
 
 Activities: ${activities.join(', ')}
 
-Return ONLY valid JSON in this format:
+Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks:
 {
     "categories": [
         {
-            "name": "Category name",
-            "items": ["item1", "item2"]
+            "name": "Essentials",
+            "items": ["Passport", "Phone charger"]
+        },
+        {
+            "name": "Clothing",
+            "items": ["Shoes", "Jacket"]
         }
     ]
 }`;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_AI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+                    generationConfig: { 
+                        temperature: 0.7,
+                        maxOutputTokens: 2048
+                    }
                 })
             }
         );
         
         const data = await response.json();
+        console.log('[AI Packing] API Response received');
         
-        if (data.candidates?.[0]) {
-            const content = data.candidates[0].content.parts[0].text;
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
-            }
+        // Check for errors in response
+        if (data.error) {
+            console.error('[AI Packing] API Error:', data.error);
+            throw new Error(`API Error: ${data.error.message}`);
         }
         
-        throw new Error('Invalid AI response');
+        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            let content = data.candidates[0].content.parts[0].text;
+            console.log('[AI Packing] FULL RESPONSE:\n', content);
+            
+            // Remove markdown code blocks
+            content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').replace(/```/g, '');
+            content = content.trim();
+            
+            // Try to find JSON object
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    const result = JSON.parse(jsonMatch[0]);
+                    console.log('[AI Packing] Successfully parsed packing list');
+                    return result;
+                } catch (parseError) {
+                    console.error('[AI Packing] JSON parse error:', parseError.message);
+                    console.error('[AI Packing] Attempted to parse:', jsonMatch[0].substring(0, 500));
+                }
+            } else {
+                console.error('[AI Packing] No JSON object found in response');
+            }
+        } else {
+            console.error('[AI Packing] No text content in response');
+            console.log('[AI Packing] Full data:', JSON.stringify(data, null, 2));
+        }
+        
+        throw new Error('Invalid AI response format');
     } catch (error) {
         console.error('[AI Packing] Error:', error.message);
         return generateFallbackPacking(activities, days);
     }
 }
 
-function generateFallbackTrip(city, days, activities) {
+function generateFallbackTrip(city, days, activities, mustVisit) {
     const plans = [];
+    const mustVisitLocations = mustVisit ? mustVisit.split(',').map(l => l.trim()) : [];
+    
     for (let i = 1; i <= days; i++) {
+        const dayActivities = [
+            { 
+                time: '09:00 AM', 
+                location: mustVisitLocations[i - 1] || `${city} Main Attraction`, 
+                description: `Start your day exploring ${mustVisitLocations[i - 1] || 'the city center'}` 
+            },
+            { 
+                time: '12:00 PM', 
+                location: 'Local Restaurant', 
+                description: `Enjoy authentic local cuisine` 
+            },
+            { 
+                time: '02:00 PM', 
+                location: `${activities[0] || 'Cultural'} Site`, 
+                description: `Experience ${activities[0] || 'local culture'}` 
+            },
+            { 
+                time: '05:00 PM', 
+                location: 'Shopping District', 
+                description: 'Browse local markets and shops' 
+            }
+        ];
+        
         plans.push({
             day: i,
-            title: i === 1 ? `Arrival in ${city}` : i === days ? `Departure` : `Exploring ${city}`,
-            activities: [
-                { time: '09:00 AM', location: `${city} Attraction`, description: `Enjoy ${activities[0] || 'sightseeing'}` },
-                { time: '01:00 PM', location: 'Local Restaurant', description: 'Lunch' },
-                { time: '03:00 PM', location: 'Cultural Site', description: 'Explore local culture' }
-            ]
+            title: i === 1 ? `Arrival in ${city}` : i === days ? `Final Day & Departure` : `Exploring ${city}`,
+            activities: dayActivities
         });
     }
-    return { days: plans, locations: [`${city} Center`, 'Main Square', 'Market'] };
+    
+    const locations = mustVisitLocations.length > 0 
+        ? mustVisitLocations 
+        : [`${city} Center`, 'Main Square', 'Cultural District', 'Market Area'];
+    
+    return { days: plans, locations };
 }
 
 function generateFallbackPacking(activities, days) {
     return {
         categories: [
-            { name: 'Essentials', items: ['Passport', 'Tickets', 'Phone', 'Charger', 'Money'] },
-            { name: 'Clothing', items: [`T-shirts (${days})`, 'Pants', 'Jacket', 'Shoes', 'Socks'] },
-            { name: 'Toiletries', items: ['Toothbrush', 'Soap', 'Shampoo', 'Sunscreen'] }
+            { name: 'Travel Documents', items: ['Passport', 'Visa (if required)', 'Travel insurance', 'Hotel confirmations', 'Flight tickets'] },
+            { name: 'Essentials', items: ['Phone', 'Charger', 'Power bank', 'Credit cards', 'Cash', 'Wallet'] },
+            { name: 'Clothing', items: [`T-shirts (${days})`, `Underwear (${days + 1})`, 'Pants/Shorts', 'Light jacket', 'Comfortable walking shoes', 'Socks'] },
+            { name: 'Toiletries', items: ['Toothbrush', 'Toothpaste', 'Shampoo', 'Soap', 'Sunscreen', 'Deodorant'] },
+            { name: 'Activity Gear', items: activities.includes('Adventure') ? ['Hiking boots', 'Backpack'] : activities.includes('Swimming') ? ['Swimsuit', 'Towel'] : ['Camera', 'Sunglasses'] },
+            { name: 'Health & Safety', items: ['Medications', 'First-aid kit', 'Hand sanitizer', 'Face masks'] }
         ]
     };
 }
@@ -364,42 +520,3 @@ app.listen(PORT, () => {
     console.log(`\n🚀 TripSync server running on http://localhost:${PORT}`);
     console.log('📂 Serving files from ./public directory\n');
 });
-
-
-/* ==========================================
-   package.json
-   ========================================== */
-/*
-{
-  "name": "tripsync",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "mongoose": "^8.0.0",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "dotenv": "^16.3.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
-  }
-}
-*/
-
-
-/* ==========================================
-   .env
-   ========================================== */
-/*
-MONGODB_URI=mongodb://localhost:27017/tripsync
-JWT_SECRET=your-super-secret-jwt-key-change-this
-GOOGLE_AI_KEY=your_google_ai_key_here
-GOOGLE_MAPS_API_KEY=your_google_maps_key_here
-PORT=3000
-*/

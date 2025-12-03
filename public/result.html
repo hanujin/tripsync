@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripSync - Your Travel Personality</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>✈️ TripSync</h1>
+            <nav class="nav-menu">
+                <a href="home.html" class="nav-btn">Plan Trip</a>
+                <a href="personality.html" class="nav-btn active">Personality Test</a>
+                <a href="mypage.html" class="nav-btn">My Trips</a>
+            </nav>
+            <div class="user-info">
+                <span class="user-name" id="userName"></span>
+                <button class="btn-logout" id="logoutBtn">Logout</button>
+            </div>
+        </header>
+
+        <div class="personality-container">
+            <div class="test-screen">
+                <div class="results-container">
+                    <h2>Your Travel Personality</h2>
+                    <div class="personality-result">
+                        <div class="personality-badge" id="personalityBadge"></div>
+                        <h3 id="personalityName"></h3>
+                        <p id="personalityDescription"></p>
+                    </div>
+                    
+                    <div class="recommended-destinations">
+                        <h3>🌟 Recommended Destinations</h3>
+                        <div id="destinationsList"></div>
+                    </div>
+                    
+                    <div class="result-actions">
+                        <a href="personality.html" class="btn-retake">Retake Test</a>
+                        <a href="home.html" class="btn-go-home">Start Planning</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/result.js"></script>
+</body>
+</html>

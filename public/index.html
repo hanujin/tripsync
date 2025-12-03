@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripSync - AI Travel Planner</title>
+    <title>TripSync - Login</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -53,122 +53,6 @@
         </div>
     </div>
 
-    <div id="mainApp" class="app-container">
-        <header class="app-header">
-            <h1>✈️ TripSync</h1>
-            <div class="user-info">
-                <span class="user-name" id="userName"></span>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
-            </div>
-        </header>
-
-        <div class="main-content">
-            <div class="input-section">
-                <h2>Create your trip plan</h2>
-                <form id="tripForm">
-                    <div class="form-group">
-                        <label for="city">Destination City</label>
-                        <input type="text" id="city" name="city" required placeholder="e.g. Seoul, Tokyo, Paris">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Date Input Method</label>
-                        <div class="date-input-type">
-                            <button type="button" class="date-type-btn active" data-type="calendar">Calendar</button>
-                            <button type="button" class="date-type-btn" data-type="duration">Duration</button>
-                        </div>
-                    </div>
-
-                    <div id="calendarInputs" class="date-inputs active">
-                        <div class="form-group">
-                            <label for="startDate">Start Date</label>
-                            <input type="date" id="startDate" name="startDate">
-                        </div>
-                        <div class="form-group">
-                            <label for="endDate">End Date</label>
-                            <input type="date" id="endDate" name="endDate">
-                        </div>
-                    </div>
-
-                    <div id="durationInputs" class="date-inputs">
-                        <div class="form-group">
-                            <label for="duration">Trip Duration (days)</label>
-                            <input type="number" id="duration" name="duration" min="1" max="30" placeholder="e.g. 3">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Preferred Activities</label>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="sightseeing" name="activities" value="Sightseeing">
-                                <label for="sightseeing">Sightseeing</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="food" name="activities" value="Food">
-                                <label for="food">Food & Dining</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="shopping" name="activities" value="Shopping">
-                                <label for="shopping">Shopping</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="culture" name="activities" value="Culture">
-                                <label for="culture">Culture</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="nature" name="activities" value="Nature">
-                                <label for="nature">Nature</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="adventure" name="activities" value="Adventure">
-                                <label for="adventure">Adventure</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-generate" id="generateBtn">
-                        Generate Trip Plan
-                    </button>
-                </form>
-            </div>
-
-            <div class="results-section">
-                <div class="result-card" id="tripPlanCard">
-                    <h3>📅 Trip Itinerary</h3>
-                    <div id="tripPlanContent">
-                        <div class="empty-state">
-                            <svg fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z"></path>
-                            </svg>
-                            <p>Your trip plan will appear here</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="result-card" id="mapCard">
-                    <h3>🗺️ Travel Route</h3>
-                    <div class="map-container">
-                        <div id="map" style="width: 100%; height: 100%; border-radius: 12px;"></div>
-                    </div>
-                </div>
-
-                <div class="result-card" id="packingCard">
-                    <h3>🎒 Packing List</h3>
-                    <div id="packingContent">
-                        <div class="empty-state">
-                            <svg fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
-                            </svg>
-                            <p>Packing suggestions will be generated automatically</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>

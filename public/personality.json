@@ -1,0 +1,90 @@
+{
+  "ECA": {
+    "name": "The Cultural Trailblazer",
+    "description": "Loves vibrant cities, historical landmarks, art, and exciting activities.",
+    "destinations": [
+      "Barcelona, Spain",
+      "London, United Kingdom",
+      "Berlin, Germany",
+      "Athens, Greece",
+      "Tokyo, Japan"
+    ]
+  },
+  "ECN": {
+    "name": "The Urban Aestheticist",
+    "description": "Enjoys artistic urban vibes, beautiful landscapes, and relaxed cultural experiences.",
+    "destinations": [
+      "Lisbon, Portugal",
+      "Vancouver, Canada",
+      "Melbourne, Australia",
+      "Edinburgh, United Kingdom",
+      "San Francisco, United States"
+    ]
+  },
+  "EFA": {
+    "name": "The Gourmet Adventurer",
+    "description": "A passionate foodie who enjoys exploring local flavors, markets, and lively activities.",
+    "destinations": [
+      "Bangkok, Thailand",
+      "Osaka, Japan",
+      "Mexico City, Mexico",
+      "Hong Kong, China",
+      "Singapore, Singapore"
+    ]
+  },
+  "EFN": {
+    "name": "The Social Foodie",
+    "description": "Loves vibrant food scenes, cafés, and relaxed city exploration with scenic views.",
+    "destinations": [
+      "Taipei, Taiwan",
+      "Jeju, South Korea",
+      "Chiang Mai, Thailand",
+      "Portland, United States",
+      "Honolulu, United States"
+    ]
+  },
+  "ICA": {
+    "name": "The Quiet Explorer",
+    "description": "Prefers calm cultural experiences, hidden historical spots, and light adventures.",
+    "destinations": [
+      "Budapest, Hungary",
+      "Montreal, Canada",
+      "Prague, Czech Republic",
+      "Sapporo, Japan",
+      "Edinburgh, United Kingdom"
+    ]
+  },
+  "ICN": {
+    "name": "The Serene Culturalist",
+    "description": "Enjoys tranquil art, nature, traditional towns, and peaceful scenery.",
+    "destinations": [
+      "Kyoto, Japan",
+      "Lucerne, Switzerland",
+      "Reykjavik, Iceland",
+      "Hakodate, Japan",
+      "Copenhagen, Denmark"
+    ]
+  },
+  "IFA": {
+    "name": "The Solo Food Adventurer",
+    "description": "Explores cafés, markets, and local cuisine with occasional light activities.",
+    "destinations": [
+      "Kyoto, Japan",
+      "Penang, Malaysia",
+      "Tainan, Taiwan",
+      "Nagoya, Japan",
+      "Ubud, Indonesia"
+    ]
+  },
+  "IFN": {
+    "name": "The Gentle Wanderer",
+    "description": "Seeks peaceful nature, cozy cafés, beautiful scenery, and slow travel.",
+    "destinations": [
+      "Furano, Japan",
+      "Okinawa, Japan",
+      "Interlaken, Switzerland",
+      "Lofoten, Norway",
+      "Fukuoka, Japan"
+    ]
+  }
+}

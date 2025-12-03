@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "dimension": "E/I",
+    "question": "Which atmosphere do you enjoy more when traveling?",
+    "options": [
+      {
+        "text": "Energetic and lively places with people around",
+        "score": "E"
+      },
+      {
+        "text": "Quiet and calm environments with fewer crowds",
+        "score": "I"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "dimension": "E/I",
+    "question": "When you arrive in a new city, what do you usually explore first?",
+    "options": [
+      {
+        "text": "Popular hotspots, events, or social hangouts",
+        "score": "E"
+      },
+      {
+        "text": "A cozy café or a peaceful spot to relax",
+        "score": "I"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "dimension": "E/I",
+    "question": "If you could choose your travel companion, which do you prefer?",
+    "options": [
+      {
+        "text": "Traveling with various people or a big group",
+        "score": "E"
+      },
+      {
+        "text": "Traveling alone or with a small, quiet group",
+        "score": "I"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "dimension": "C/F",
+    "question": "What do you care about the most when planning a trip?",
+    "options": [
+      {
+        "text": "Museums, architecture, history, and cultural spots",
+        "score": "C"
+      },
+      {
+        "text": "Local food, cafés, street food, and markets",
+        "score": "F"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "dimension": "C/F",
+    "question": "Which activity would you prioritize during a day of travel?",
+    "options": [
+      {
+        "text": "Visiting historic or cultural landmarks",
+        "score": "C"
+      },
+      {
+        "text": "Exploring famous restaurants or food streets",
+        "score": "F"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "dimension": "C/F",
+    "question": "What part of your trip stays in your memory the longest?",
+    "options": [
+      {
+        "text": "The city's cultural atmosphere",
+        "score": "C"
+      },
+      {
+        "text": "The food you tried and the dining experiences you had",
+        "score": "F"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "dimension": "A/N",
+    "question": "Which type of travel sounds more appealing to you?",
+    "options": [
+      {
+        "text": "Active travel with tours, activities, and exploration",
+        "score": "A"
+      },
+      {
+        "text": "Relaxing travel with nature views and peaceful moments",
+        "score": "N"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "dimension": "A/N",
+    "question": "If you had a free day during your trip, what would you do?",
+    "options": [
+      {
+        "text": "Try 2–3 different activities or experiences",
+        "score": "A"
+      },
+      {
+        "text": "Café hopping, scenic walks, and rest-focused plans",
+        "score": "N"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "dimension": "A/N",
+    "question": "What kind of place do you prefer for taking photos?",
+    "options": [
+      {
+        "text": "Famous attractions or activity-packed locations",
+        "score": "A"
+      },
+      {
+        "text": "Landscapes, viewpoints, beaches, or nature scenes",
+        "score": "N"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "dimension": "S/P",
+    "question": "How do you usually plan your trip?",
+    "options": [
+      {
+        "text": "I prefer a detailed schedule with exact times",
+        "score": "S"
+      },
+      {
+        "text": "I only plan the main spots and decide the rest spontaneously",
+        "score": "P"
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "dimension": "S/P",
+    "question": "When plans change unexpectedly, how do you react?",
+    "options": [
+      {
+        "text": "I reorganize the schedule and optimize the route again",
+        "score": "S"
+      },
+      {
+        "text": "I just go with the flow—it's part of the fun",
+        "score": "P"
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "dimension": "S/P",
+    "question": "Which statement describes your travel style better?",
+    "options": [
+      {
+        "text": "I feel comfortable when everything is planned.",
+        "score": "S"
+      },
+      {
+        "text": "Spontaneity is the best part of traveling!",
+        "score": "P"
+      }
+    ]
+  }
+]
