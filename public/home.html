@@ -92,6 +92,12 @@
                         <small>Enter specific attractions you definitely want to visit, separated by commas</small>
                     </div>
 
+                    <div class="form-group">
+                        <label for="additionalRequests">Additional Requests (Optional)</label>
+                        <textarea id="additionalRequests" name="additionalRequests" rows="3" placeholder="e.g. I prefer vegetarian food, need wheelchair accessibility, want to avoid crowded places..."></textarea>
+                        <small>Tell us any special requirements or preferences for your trip</small>
+                    </div>
+
                     <button type="submit" class="btn-generate" id="generateBtn">
                         Generate Trip Plan
                     </button>
@@ -113,6 +119,12 @@
 
                 <div class="result-card" id="mapCard">
                     <h3>🗺️ Travel Route</h3>
+                    <div class="day-tabs" id="dayTabs" style="display: none;">
+                        <!-- Day tabs will be inserted here -->
+                    </div>
+                    <div class="map-description" style="margin-bottom: 10px; color: #666; font-size: 14px;">
+                        <span id="mapDayInfo">Select a day to view route</span>
+                    </div>
                     <div class="map-container">
                         <div id="map"></div>
                     </div>

@@ -1,3 +1,5 @@
+// server.js - Backend with MongoDB and AI Integration
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -12,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Set proper MIME types
 app.use(express.static('public', {
     setHeaders: (res, path) => {
         if (path.endsWith('.css')) {
@@ -27,8 +30,40 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tripsy
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
 mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✓ MongoDB Connected'))
+    .then(() => {
+        console.log('✓ MongoDB Connected');
+        // Test Gemini API
+        testGeminiModels();
+    })
     .catch(err => console.error('✗ MongoDB Connection Error:', err));
+
+// Test available Gemini models
+async function testGeminiModels() {
+    const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY;
+    if (!GOOGLE_AI_KEY) {
+        console.warn('[Gemini] No API key found');
+        return;
+    }
+    
+    try {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models?key=${GOOGLE_AI_KEY}`
+        );
+        const data = await response.json();
+        
+        console.log('\n[Gemini] Available models:');
+        if (data.models) {
+            data.models.forEach(model => {
+                if (model.name.includes('gemini') && model.supportedGenerationMethods?.includes('generateContent')) {
+                    console.log(`  ✓ ${model.name}`);
+                }
+            });
+        }
+        console.log('');
+    } catch (error) {
+        console.error('[Gemini] Error fetching models:', error.message);
+    }
+}
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -154,10 +189,10 @@ app.post('/api/auth/login', async (req, res) => {
 // Generate trip plan (preview only, not saved)
 app.post('/api/generate-trip', authenticateToken, async (req, res) => {
     try {
-        const { city, days, activities, mustVisit } = req.body;
+        const { city, days, activities, mustVisit, additionalRequests } = req.body;
         console.log(`[Trip Preview] User ${req.user.email} generating ${days}-day trip for ${city}`);
         
-        const tripPlan = await generateTripPlan(city, days, activities, mustVisit);
+        const tripPlan = await generateTripPlan(city, days, activities, mustVisit, additionalRequests);
         const packingList = await generatePackingList(city, activities, days);
         
         res.json({
@@ -319,7 +354,7 @@ Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks
 }`;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_AI_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -404,7 +439,7 @@ Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks
 }`;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_AI_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

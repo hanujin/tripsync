@@ -1,5 +1,8 @@
+// home.js - Trip Planning functionality
+
 const API_URL = 'http://localhost:3000/api';
 
+// Check authentication
 const authToken = localStorage.getItem('authToken');
 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
@@ -7,14 +10,17 @@ if (!authToken || !currentUser) {
     window.location.href = 'index.html';
 }
 
+// Display user name
 document.getElementById('userName').textContent = currentUser.name;
 
+// Logout
 document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     window.location.href = 'index.html';
 });
 
+// Date type toggle
 const dateTypeBtns = document.querySelectorAll('.date-type-btn');
 dateTypeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -33,6 +39,7 @@ dateTypeBtns.forEach(btn => {
     });
 });
 
+// Set minimum date
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('startDate').min = today;
 document.getElementById('endDate').min = today;
@@ -41,12 +48,14 @@ document.getElementById('startDate').addEventListener('change', (e) => {
     document.getElementById('endDate').min = e.target.value;
 });
 
+// Pre-fill city if coming from personality test
 const urlParams = new URLSearchParams(window.location.search);
 const prefilledCity = urlParams.get('city');
 if (prefilledCity) {
     document.getElementById('city').value = prefilledCity;
 }
 
+// Check if viewing a saved trip
 const viewingTripId = urlParams.get('view');
 if (viewingTripId) {
     const viewingTrip = JSON.parse(localStorage.getItem('viewingTrip'));
@@ -60,54 +69,107 @@ if (viewingTripId) {
             }, 500);
         }
         
+        // Hide save button since already saved
         document.getElementById('saveTripSection').style.display = 'none';
         
+        // Scroll to results
         setTimeout(() => {
             document.querySelector('.results-section').scrollIntoView({ behavior: 'smooth' });
         }, 100);
         
+        // Clear from localStorage
         localStorage.removeItem('viewingTrip');
     }
 }
 
+// Google Maps
 let map = null;
 let directionsService = null;
 let directionsRenderer = null;
+let mapsLoaded = false;
 
 async function initializeMap() {
     try {
         const response = await fetch(`${API_URL}/maps-key`);
         const data = await response.json();
         
-        if (typeof google !== 'undefined') {
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat: 37.5665, lng: 126.9780 },
-                zoom: 12
-            });
-            
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({
-                map: map,
-                polylineOptions: {
-                    strokeColor: '#1a237e',
-                    strokeWeight: 4
-                }
-            });
+        if (!data.key || !data.available) {
+            console.warn('Google Maps API key not available');
+            document.getElementById('map').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">Google Maps not configured</div>';
+            return;
         }
+        
+        // Load Google Maps script dynamically
+        if (!mapsLoaded) {
+            await loadGoogleMapsScript(data.key);
+            mapsLoaded = true;
+        }
+        
+        // Initialize map
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 37.5665, lng: 126.9780 },
+            zoom: 12,
+            language: 'en',
+            region: 'US'
+        });
+        
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            polylineOptions: {
+                strokeColor: '#1a237e',
+                strokeWeight: 4
+            }
+        });
+        
+        console.log('Google Maps initialized successfully');
     } catch (error) {
         console.error('Error initializing map:', error);
+        document.getElementById('map').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">Failed to load map</div>';
     }
+}
+
+function loadGoogleMapsScript(apiKey) {
+    return new Promise((resolve, reject) => {
+        // Check if already loaded
+        if (window.google && window.google.maps) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        
+        script.onload = () => {
+            console.log('Google Maps script loaded');
+            resolve();
+        };
+        
+        script.onerror = () => {
+            console.error('Failed to load Google Maps script');
+            reject(new Error('Failed to load Google Maps'));
+        };
+        
+        document.head.appendChild(script);
+    });
 }
 
 initializeMap();
 
+// Trip generation state
 let currentTripData = null;
+let currentSelectedDay = 'all';
+let packingListData = {};
 
+// Generate Trip Plan
 document.getElementById('tripForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const city = document.getElementById('city').value;
     const mustVisit = document.getElementById('mustVisit').value.trim();
+    const additionalRequests = document.getElementById('additionalRequests').value.trim();
     const activities = Array.from(document.querySelectorAll('.checkbox-item input:checked'))
         .map(cb => cb.value);
     
@@ -157,7 +219,7 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ city, days, activities, mustVisit })
+            body: JSON.stringify({ city, days, activities, mustVisit, additionalRequests })
         });
 
         if (!response.ok) {
@@ -171,6 +233,7 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
             days,
             activities,
             mustVisit,
+            additionalRequests,
             tripPlan: data.tripPlan,
             packingList: data.packingList
         };
@@ -179,7 +242,7 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
         displayPackingList(data.packingList);
         
         if (data.tripPlan.locations && data.tripPlan.locations.length > 0) {
-            displayRoute(city, data.tripPlan.locations);
+            displayRoute(city, data.tripPlan.locations, 'all');
         }
         
         document.getElementById('saveTripSection').style.display = 'block';
@@ -196,6 +259,7 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
     }
 });
 
+// Save Trip
 document.getElementById('saveTripBtn').addEventListener('click', async () => {
     if (!currentTripData) {
         alert('No trip data to save');
@@ -219,10 +283,10 @@ document.getElementById('saveTripBtn').addEventListener('click', async () => {
         const data = await response.json();
 
         if (response.ok) {
-            alert('Trip saved successfully to My Trips!');
+            alert('✅ Trip saved successfully to My Trips!');
             saveTripBtn.textContent = '✓ Saved';
             setTimeout(() => {
-                saveTripBtn.textContent = 'Save Trip to My Trips';
+                saveTripBtn.textContent = '💾 Save Trip to My Trips';
                 saveTripBtn.disabled = false;
             }, 2000);
         } else {
@@ -236,59 +300,197 @@ document.getElementById('saveTripBtn').addEventListener('click', async () => {
     }
 });
 
+// Display functions
 function displayTripPlan(tripPlan) {
-    let html = '';
-    
-    if (tripPlan.days && tripPlan.days.length > 0) {
-        tripPlan.days.forEach(day => {
-            html += `<div class="trip-plan-item">
-                <h4>Day ${day.day}: ${day.title}</h4>`;
-            
-            if (day.activities && day.activities.length > 0) {
-                day.activities.forEach(activity => {
-                    html += `<p><strong>${activity.time}</strong> - ${activity.location}<br>
-                             ${activity.description}</p>`;
-                });
-            }
-            
-            html += `</div>`;
-        });
-    } else {
-        html = '<div class="empty-state"><p>No itinerary available</p></div>';
+    if (!tripPlan.days || tripPlan.days.length === 0) {
+        document.getElementById('tripPlanContent').innerHTML = '<div class="empty-state"><p>No itinerary available</p></div>';
+        return;
     }
+    
+    // Show day tabs
+    const dayTabs = document.getElementById('dayTabs');
+    dayTabs.style.display = 'flex';
+    dayTabs.innerHTML = `
+        <button class="day-tab active" data-day="all">All Days</button>
+        ${tripPlan.days.map(day => `
+            <button class="day-tab" data-day="${day.day}">Day ${day.day}</button>
+        `).join('')}
+    `;
+    
+    // Add click handlers to tabs
+    document.querySelectorAll('.day-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const selectedDay = tab.dataset.day;
+            currentSelectedDay = selectedDay;
+            filterTripByDay(selectedDay);
+        });
+    });
+    
+    // Display all days initially
+    let html = '';
+    tripPlan.days.forEach(day => {
+        html += createDayHTML(day);
+    });
     
     document.getElementById('tripPlanContent').innerHTML = html;
 }
 
+function createDayHTML(day) {
+    let html = `<div class="trip-plan-day" data-day="${day.day}">
+        <div class="day-header">
+            <h4>Day ${day.day}: ${day.title}</h4>
+        </div>
+        <div class="activities-list">`;
+    
+    if (day.activities && day.activities.length > 0) {
+        day.activities.forEach(activity => {
+            const mealIcon = getMealIcon(activity.time, activity.description);
+            html += `
+                <div class="activity-item ${mealIcon ? 'meal-activity' : ''}">
+                    <div class="activity-time">
+                        <span class="time-badge">${activity.time}</span>
+                        ${mealIcon ? `<span class="meal-icon">${mealIcon}</span>` : ''}
+                    </div>
+                    <div class="activity-details">
+                        <h5 class="activity-location">${activity.location}</h5>
+                        <p class="activity-description">${activity.description}</p>
+                    </div>
+                </div>`;
+        });
+    }
+    
+    html += `</div></div>`;
+    return html;
+}
+
+function getMealIcon(time, description) {
+    const timeStr = time.toLowerCase();
+    const descStr = description.toLowerCase();
+    
+    if (timeStr.includes('breakfast') || descStr.includes('breakfast') || 
+        (parseInt(time) >= 7 && parseInt(time) <= 10)) {
+        return '🍳';
+    } else if (timeStr.includes('lunch') || descStr.includes('lunch') || 
+               (parseInt(time) >= 11 && parseInt(time) <= 14)) {
+        return '🍽️';
+    } else if (timeStr.includes('dinner') || descStr.includes('dinner') || 
+               (parseInt(time) >= 18 && parseInt(time) <= 21)) {
+        return '🍴';
+    }
+    return null;
+}
+
+function filterTripByDay(selectedDay) {
+    const allDays = document.querySelectorAll('.trip-plan-day');
+    
+    if (selectedDay === 'all') {
+        allDays.forEach(day => day.style.display = 'block');
+        document.getElementById('mapDayInfo').textContent = 'Showing all locations';
+        
+        if (currentTripData && currentTripData.tripPlan.locations) {
+            displayRoute(currentTripData.city, currentTripData.tripPlan.locations, 'all');
+        }
+    } else {
+        allDays.forEach(day => {
+            if (day.dataset.day === selectedDay) {
+                day.style.display = 'block';
+            } else {
+                day.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('mapDayInfo').textContent = `Showing Day ${selectedDay} route`;
+        
+        // Get locations for selected day only
+        const dayData = currentTripData.tripPlan.days.find(d => d.day === parseInt(selectedDay));
+        if (dayData && dayData.activities) {
+            const dayLocations = dayData.activities.map(a => a.location);
+            displayRoute(currentTripData.city, dayLocations, selectedDay);
+        }
+    }
+}
+
 function displayPackingList(packingList) {
+    if (!packingList.categories || packingList.categories.length === 0) {
+        document.getElementById('packingContent').innerHTML = '<div class="empty-state"><p>No packing list available</p></div>';
+        return;
+    }
+    
+    // Initialize packing list data
+    packingListData = {};
+    packingList.categories.forEach(category => {
+        packingListData[category.name] = category.items || [];
+    });
+    
     let html = '';
     
-    if (packingList.categories && packingList.categories.length > 0) {
-        packingList.categories.forEach(category => {
-            html += `<div style="margin-bottom: 20px;">
-                <h4 style="color: #1a237e; margin-bottom: 12px;">${category.name}</h4>
-                <div class="packing-list">`;
-            
-            if (category.items && category.items.length > 0) {
-                category.items.forEach((item, index) => {
-                    const uniqueId = `pack_${category.name.replace(/\s+/g, '_')}_${index}`;
-                    html += `<div class="packing-item">
-                        <input type="checkbox" id="${uniqueId}">
-                        <label for="${uniqueId}">${item}</label>
-                    </div>`;
-                });
-            }
-            
-            html += `</div></div>`;
-        });
-    } else {
-        html = '<div class="empty-state"><p>No packing list available</p></div>';
-    }
+    packingList.categories.forEach(category => {
+        html += `
+            <div class="packing-category" data-category="${category.name}">
+                <div class="category-header">
+                    <h4>${category.name}</h4>
+                    <button class="btn-add-item" onclick="addPackingItem('${category.name}')">+ Add Item</button>
+                </div>
+                <div class="packing-list" id="packing-${category.name.replace(/\s+/g, '-')}">`;
+        
+        if (category.items && category.items.length > 0) {
+            category.items.forEach((item, index) => {
+                html += createPackingItemHTML(category.name, item, index);
+            });
+        }
+        
+        html += `</div></div>`;
+    });
     
     document.getElementById('packingContent').innerHTML = html;
 }
 
-function displayRoute(city, locations) {
+function createPackingItemHTML(categoryName, item, index) {
+    const uniqueId = `pack_${categoryName.replace(/\s+/g, '_')}_${index}`;
+    return `
+        <div class="packing-item">
+            <input type="checkbox" id="${uniqueId}">
+            <label for="${uniqueId}">${item}</label>
+            <button class="btn-remove-item" onclick="removePackingItem('${categoryName}', ${index})">×</button>
+        </div>`;
+}
+
+function addPackingItem(categoryName) {
+    const itemName = prompt(`Add new item to ${categoryName}:`);
+    if (!itemName || !itemName.trim()) return;
+    
+    packingListData[categoryName].push(itemName.trim());
+    
+    // Re-render the category
+    const categoryId = `packing-${categoryName.replace(/\s+/g, '-')}`;
+    const container = document.getElementById(categoryId);
+    
+    const index = packingListData[categoryName].length - 1;
+    const newItemHTML = createPackingItemHTML(categoryName, itemName.trim(), index);
+    container.insertAdjacentHTML('beforeend', newItemHTML);
+}
+
+function removePackingItem(categoryName, index) {
+    if (!confirm('Remove this item?')) return;
+    
+    packingListData[categoryName].splice(index, 1);
+    
+    // Re-render the entire category to fix indices
+    const categoryId = `packing-${categoryName.replace(/\s+/g, '-')}`;
+    const container = document.getElementById(categoryId);
+    
+    let html = '';
+    packingListData[categoryName].forEach((item, idx) => {
+        html += createPackingItemHTML(categoryName, item, idx);
+    });
+    
+    container.innerHTML = html;
+}
+
+function displayRoute(city, locations, dayFilter) {
     if (!map || !directionsService || !directionsRenderer) {
         console.log('Google Maps not initialized');
         return;
@@ -296,6 +498,10 @@ function displayRoute(city, locations) {
 
     if (!locations || locations.length < 2) {
         console.log('Not enough locations for route');
+        // Just show markers for single location
+        if (locations && locations.length === 1) {
+            showSingleMarker(city, locations[0]);
+        }
         return;
     }
 
@@ -308,8 +514,10 @@ function displayRoute(city, locations) {
         origin: `${locations[0]}, ${city}`,
         destination: `${locations[locations.length - 1]}, ${city}`,
         waypoints: waypoints,
-        travelMode: google.maps.TravelMode.WALKING,
-        optimizeWaypoints: true
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: false,
+        region: 'US',
+        language: 'en'
     };
 
     directionsService.route(request, (result, status) => {
@@ -317,6 +525,43 @@ function displayRoute(city, locations) {
             directionsRenderer.setDirections(result);
         } else {
             console.error('Directions request failed:', status);
+            // Fallback: show markers only
+            showMarkersOnly(city, locations);
         }
+    });
+}
+
+function showSingleMarker(city, location) {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: `${location}, ${city}` }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+            map.setCenter(results[0].geometry.location);
+            map.setZoom(15);
+            new google.maps.Marker({
+                map: map,
+                position: results[0].geometry.location,
+                title: location
+            });
+        }
+    });
+}
+
+function showMarkersOnly(city, locations) {
+    const geocoder = new google.maps.Geocoder();
+    const bounds = new google.maps.LatLngBounds();
+    
+    locations.forEach((location, index) => {
+        geocoder.geocode({ address: `${location}, ${city}` }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const marker = new google.maps.Marker({
+                    map: map,
+                    position: results[0].geometry.location,
+                    label: (index + 1).toString(),
+                    title: location
+                });
+                bounds.extend(results[0].geometry.location);
+                map.fitBounds(bounds);
+            }
+        });
     });
 }
