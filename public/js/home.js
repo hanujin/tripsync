@@ -1,8 +1,10 @@
-// home.js - Trip Planning functionality
+const API_URL = 
+    window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/api'
+        : 'https://tripsync-backend-0m7u.onrender.com/api';
 
-const API_URL = 'http://localhost:3000/api';
+console.log("Using API URL:", API_URL);
 
-// Check authentication
 const authToken = localStorage.getItem('authToken');
 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
@@ -10,17 +12,14 @@ if (!authToken || !currentUser) {
     window.location.href = 'index.html';
 }
 
-// Display user name
 document.getElementById('userName').textContent = currentUser.name;
 
-// Logout
 document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     window.location.href = 'index.html';
 });
 
-// Date type toggle
 const dateTypeBtns = document.querySelectorAll('.date-type-btn');
 dateTypeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -39,7 +38,6 @@ dateTypeBtns.forEach(btn => {
     });
 });
 
-// Set minimum date
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('startDate').min = today;
 document.getElementById('endDate').min = today;
@@ -48,14 +46,12 @@ document.getElementById('startDate').addEventListener('change', (e) => {
     document.getElementById('endDate').min = e.target.value;
 });
 
-// Pre-fill city if coming from personality test
 const urlParams = new URLSearchParams(window.location.search);
 const prefilledCity = urlParams.get('city');
 if (prefilledCity) {
     document.getElementById('city').value = prefilledCity;
 }
 
-// Check if viewing a saved trip
 const viewingTripId = urlParams.get('view');
 if (viewingTripId) {
     const viewingTrip = JSON.parse(localStorage.getItem('viewingTrip'));
@@ -69,20 +65,16 @@ if (viewingTripId) {
             }, 500);
         }
         
-        // Hide save button since already saved
         document.getElementById('saveTripSection').style.display = 'none';
         
-        // Scroll to results
         setTimeout(() => {
             document.querySelector('.results-section').scrollIntoView({ behavior: 'smooth' });
         }, 100);
         
-        // Clear from localStorage
         localStorage.removeItem('viewingTrip');
     }
 }
 
-// Google Maps
 let map = null;
 let directionsService = null;
 let directionsRenderer = null;
@@ -99,13 +91,11 @@ async function initializeMap() {
             return;
         }
         
-        // Load Google Maps script dynamically
         if (!mapsLoaded) {
             await loadGoogleMapsScript(data.key);
             mapsLoaded = true;
         }
         
-        // Initialize map
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: 37.5665, lng: 126.9780 },
             zoom: 12,
@@ -131,7 +121,6 @@ async function initializeMap() {
 
 function loadGoogleMapsScript(apiKey) {
     return new Promise((resolve, reject) => {
-        // Check if already loaded
         if (window.google && window.google.maps) {
             resolve();
             return;
@@ -158,12 +147,10 @@ function loadGoogleMapsScript(apiKey) {
 
 initializeMap();
 
-// Trip generation state
 let currentTripData = null;
 let currentSelectedDay = 'all';
 let packingListData = {};
 
-// Generate Trip Plan
 document.getElementById('tripForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -259,7 +246,6 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
     }
 });
 
-// Save Trip
 document.getElementById('saveTripBtn').addEventListener('click', async () => {
     if (!currentTripData) {
         alert('No trip data to save');
@@ -300,14 +286,12 @@ document.getElementById('saveTripBtn').addEventListener('click', async () => {
     }
 });
 
-// Display functions
 function displayTripPlan(tripPlan) {
     if (!tripPlan.days || tripPlan.days.length === 0) {
         document.getElementById('tripPlanContent').innerHTML = '<div class="empty-state"><p>No itinerary available</p></div>';
         return;
     }
     
-    // Show day tabs
     const dayTabs = document.getElementById('dayTabs');
     dayTabs.style.display = 'flex';
     dayTabs.innerHTML = `
@@ -317,7 +301,6 @@ function displayTripPlan(tripPlan) {
         `).join('')}
     `;
     
-    // Add click handlers to tabs
     document.querySelectorAll('.day-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
@@ -329,7 +312,6 @@ function displayTripPlan(tripPlan) {
         });
     });
     
-    // Display all days initially
     let html = '';
     tripPlan.days.forEach(day => {
         html += createDayHTML(day);
@@ -404,7 +386,6 @@ function filterTripByDay(selectedDay) {
         
         document.getElementById('mapDayInfo').textContent = `Showing Day ${selectedDay} route`;
         
-        // Get locations for selected day only
         const dayData = currentTripData.tripPlan.days.find(d => d.day === parseInt(selectedDay));
         if (dayData && dayData.activities) {
             const dayLocations = dayData.activities.map(a => a.location);
@@ -419,7 +400,6 @@ function displayPackingList(packingList) {
         return;
     }
     
-    // Initialize packing list data
     packingListData = {};
     packingList.categories.forEach(category => {
         packingListData[category.name] = category.items || [];
@@ -478,7 +458,6 @@ function removePackingItem(categoryName, index) {
     
     packingListData[categoryName].splice(index, 1);
     
-    // Re-render the entire category to fix indices
     const categoryId = `packing-${categoryName.replace(/\s+/g, '-')}`;
     const container = document.getElementById(categoryId);
     
@@ -498,7 +477,6 @@ function displayRoute(city, locations, dayFilter) {
 
     if (!locations || locations.length < 2) {
         console.log('Not enough locations for route');
-        // Just show markers for single location
         if (locations && locations.length === 1) {
             showSingleMarker(city, locations[0]);
         }
@@ -525,7 +503,6 @@ function displayRoute(city, locations, dayFilter) {
             directionsRenderer.setDirections(result);
         } else {
             console.error('Directions request failed:', status);
-            // Fallback: show markers only
             showMarkersOnly(city, locations);
         }
     });

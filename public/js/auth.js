@@ -1,4 +1,9 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 
+    window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/api'
+        : 'https://tripsync-backend-0m7u.onrender.com/api';
+
+console.log("Using API URL:", API_URL);
 
 const loginPage = document.getElementById('loginPage');
 const signupPage = document.getElementById('signupPage');
