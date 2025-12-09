@@ -157,7 +157,12 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
     const city = document.getElementById('city').value;
     const mustVisit = document.getElementById('mustVisit').value.trim();
     const additionalRequests = document.getElementById('additionalRequests').value.trim();
-    const activities = Array.from(document.querySelectorAll('.checkbox-item input:checked'))
+    const accommodationAddress = document.getElementById('accommodationAddress').value.trim();
+    
+    const activities = Array.from(document.querySelectorAll('.checkbox-item input[name="activities"]:checked'))
+        .map(cb => cb.value);
+    
+    const meals = Array.from(document.querySelectorAll('.checkbox-item input[name="meals"]:checked'))
         .map(cb => cb.value);
     
     let days = 3;
@@ -206,7 +211,15 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ city, days, activities, mustVisit, additionalRequests })
+            body: JSON.stringify({ 
+                city, 
+                days, 
+                activities, 
+                mustVisit, 
+                additionalRequests,
+                meals,
+                accommodationAddress,
+            })
         });
 
         if (!response.ok) {
@@ -221,6 +234,8 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
             activities,
             mustVisit,
             additionalRequests,
+            meals,
+            accommodationAddress,
             tripPlan: data.tripPlan,
             packingList: data.packingList
         };
@@ -292,7 +307,7 @@ function displayTripPlan(tripPlan) {
         return;
     }
     
-    const dayTabs = document.getElementById('dayTabs');
+    const dayTabs = document.querySelector('#mapCard .day-tabs');
     dayTabs.style.display = 'flex';
     dayTabs.innerHTML = `
         <button class="day-tab active" data-day="all">All Days</button>
@@ -329,12 +344,10 @@ function createDayHTML(day) {
     
     if (day.activities && day.activities.length > 0) {
         day.activities.forEach(activity => {
-            const mealIcon = getMealIcon(activity.time, activity.description);
             html += `
-                <div class="activity-item ${mealIcon ? 'meal-activity' : ''}">
+                <div class="activity-item">
                     <div class="activity-time">
                         <span class="time-badge">${activity.time}</span>
-                        ${mealIcon ? `<span class="meal-icon">${mealIcon}</span>` : ''}
                     </div>
                     <div class="activity-details">
                         <h5 class="activity-location">${activity.location}</h5>
@@ -349,19 +362,39 @@ function createDayHTML(day) {
 }
 
 function getMealIcon(time, description) {
-    const timeStr = time.toLowerCase();
     const descStr = description.toLowerCase();
     
-    if (timeStr.includes('breakfast') || descStr.includes('breakfast') || 
-        (parseInt(time) >= 7 && parseInt(time) <= 10)) {
+    if (descStr.includes('breakfast at') || descStr.includes('enjoy breakfast') || 
+        descStr.includes('have breakfast') || descStr.includes('grab breakfast')) {
         return '🍳';
-    } else if (timeStr.includes('lunch') || descStr.includes('lunch') || 
-               (parseInt(time) >= 11 && parseInt(time) <= 14)) {
+    }
+    
+    if (descStr.includes('lunch at') || descStr.includes('enjoy lunch') || 
+        descStr.includes('have lunch') || descStr.includes('grab lunch')) {
         return '🍽️';
-    } else if (timeStr.includes('dinner') || descStr.includes('dinner') || 
-               (parseInt(time) >= 18 && parseInt(time) <= 21)) {
+    }
+    
+    if (descStr.includes('dinner at') || descStr.includes('enjoy dinner') || 
+        descStr.includes('have dinner') || descStr.includes('dine at') ||
+        descStr.includes('grab dinner')) {
         return '🍴';
     }
+    
+    if (descStr.includes('eat') || descStr.includes('meal')) {
+        const timeStr = time.toLowerCase();
+        const hour = parseInt(time.match(/\d+/)?.[0] || 0);
+        const isPM = timeStr.includes('pm');
+        const actualHour = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);
+        
+        if (actualHour >= 7 && actualHour <= 10) {
+            return '🍳';
+        } else if (actualHour >= 12 && actualHour <= 14) {
+            return '🍽️';
+        } else if (actualHour >= 18 && actualHour <= 21) {
+            return '🍴';
+        }
+    }
+    
     return null;
 }
 
@@ -444,7 +477,6 @@ function addPackingItem(categoryName) {
     
     packingListData[categoryName].push(itemName.trim());
     
-    // Re-render the category
     const categoryId = `packing-${categoryName.replace(/\s+/g, '-')}`;
     const container = document.getElementById(categoryId);
     

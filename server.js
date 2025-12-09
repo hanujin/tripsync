@@ -1,5 +1,3 @@
-// server.js - Backend with MongoDB and AI Integration
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -14,7 +12,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Set proper MIME types
 app.use(express.static('public', {
     setHeaders: (res, path) => {
         if (path.endsWith('.css')) {
@@ -32,12 +29,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('✓ MongoDB Connected');
-        // Test Gemini API
         testGeminiModels();
     })
     .catch(err => console.error('✗ MongoDB Connection Error:', err));
 
-// Test available Gemini models
 async function testGeminiModels() {
     const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY;
     if (!GOOGLE_AI_KEY) {
@@ -186,13 +181,14 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Generate trip plan (preview only, not saved)
 app.post('/api/generate-trip', authenticateToken, async (req, res) => {
     try {
-        const { city, days, activities, mustVisit, additionalRequests } = req.body;
+        const { city, days, activities, mustVisit, additionalRequests, meals, accommodationAddress } = req.body;
         console.log(`[Trip Preview] User ${req.user.email} generating ${days}-day trip for ${city}`);
+        console.log(`[Trip Preview] Meals:`, meals);
+        console.log(`[Trip Preview] Accommodation:`, accommodationAddress || 'Not provided');
         
-        const tripPlan = await generateTripPlan(city, days, activities, mustVisit, additionalRequests);
+        const tripPlan = await generateTripPlan(city, days, activities, mustVisit, additionalRequests, meals, accommodationAddress);
         const packingList = await generatePackingList(city, activities, days);
         
         res.json({
@@ -205,7 +201,6 @@ app.post('/api/generate-trip', authenticateToken, async (req, res) => {
     }
 });
 
-// Save trip to database
 app.post('/api/save-trip', authenticateToken, async (req, res) => {
     try {
         const { city, days, activities, mustVisit, tripPlan, packingList } = req.body;
@@ -290,7 +285,6 @@ app.get('/api/maps-key', (req, res) => {
     });
 });
 
-// Save user personality
 app.post('/api/personality', authenticateToken, async (req, res) => {
     try {
         const personality = req.body;
@@ -309,7 +303,6 @@ app.post('/api/personality', authenticateToken, async (req, res) => {
     }
 });
 
-// Get user personality
 app.get('/api/personality', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.userId).select('personality');
@@ -371,7 +364,6 @@ Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks
         const data = await response.json();
         console.log('[AI Trip] API Response received');
         
-        // Check for errors in response
         if (data.error) {
             console.error('[AI Trip] API Error:', data.error);
             throw new Error(`API Error: ${data.error.message}`);
@@ -381,11 +373,9 @@ Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks
             let content = data.candidates[0].content.parts[0].text;
             console.log('[AI Trip] FULL RESPONSE:\n', content);
             
-            // Remove markdown code blocks
             content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').replace(/```/g, '');
             content = content.trim();
             
-            // Try to find JSON object
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
@@ -456,7 +446,6 @@ Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks
         const data = await response.json();
         console.log('[AI Packing] API Response received');
         
-        // Check for errors in response
         if (data.error) {
             console.error('[AI Packing] API Error:', data.error);
             throw new Error(`API Error: ${data.error.message}`);
@@ -466,11 +455,9 @@ Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO backticks
             let content = data.candidates[0].content.parts[0].text;
             console.log('[AI Packing] FULL RESPONSE:\n', content);
             
-            // Remove markdown code blocks
             content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').replace(/```/g, '');
             content = content.trim();
             
-            // Try to find JSON object
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
